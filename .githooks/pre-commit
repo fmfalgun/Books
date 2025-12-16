@@ -1,0 +1,17 @@
+#!/bin/bash
+
+TEMPLATE_DIR="Templates"
+
+for file in $(git diff --cached --name-only --diff-filter=A | grep '\.yaml$'); do
+  if [ ! -s "$file" ]; then
+    case "$file" in
+      Anime/*) cp "$TEMPLATE_DIR/anime_template.yaml" "$file" ;;
+      Manga/*) cp "$TEMPLATE_DIR/manga_template.yaml" "$file" ;;
+      Movies/*) cp "$TEMPLATE_DIR/movie_template.yaml" "$file" ;;
+      Novels_Manga/*) cp "$TEMPLATE_DIR/novel_manga_template.yaml" "$file" ;;
+      Novels_Normal/*) cp "$TEMPLATE_DIR/novel_normal_template.yaml" "$file" ;;
+    esac
+    git add "$file"
+  fi
+done
+
