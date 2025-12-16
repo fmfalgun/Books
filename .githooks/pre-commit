@@ -3,10 +3,13 @@ set -e
 
 ROOT_DIR="$(git rev-parse --show-toplevel)"
 TEMPLATE_DIR="$ROOT_DIR/Media_Tracker/Templates"
+EDITOR_CMD="${EDITOR:-vim}"
 
-new_files=$(git diff --cached --name-only --diff-filter=A | grep '\.yaml$' || true)
+new_yaml_files=$(git diff --cached --name-only --diff-filter=A | grep '\.yaml$' || true)
 
-for file in $new_files; do
+files_to_edit=()
+
+for file in $new_yaml_files; do
   case "$file" in
     Media_Tracker/Anime/*)
       tpl="$TEMPLATE_DIR/anime_template.yaml"
@@ -32,6 +35,24 @@ for file in $new_files; do
     echo "[HOOK] Populating $file from $(basename "$tpl")"
     cp "$tpl" "$file"
     git add "$file"
+    files_to_edit+=("$file")
   fi
 done
+
+# Open editor ONCE for all new files
+if [ "${#files_to_edit[@]}" -gt 0 ]; then
+  echo
+  echo "[HOOK] Please fill details for the following files:"
+  for f in "${files_to_edit[@]}"; do
+    echo "  - $f"
+  done
+  echo
+  echo "[HOOK] Opening editor: $EDITOR_CMD"
+  echo
+
+  "$EDITOR_CMD" "${files_to_edit[@]}"
+
+  # Re-stage after editing
+  git add "${files_to_edit[@]}"
+fi
 
