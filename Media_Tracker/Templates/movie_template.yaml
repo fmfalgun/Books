@@ -1,0 +1,32 @@
+id:
+title:
+type: Movie
+category:
+genres: []
+director:
+author:
+
+status:
+  consumed: false
+  completed: false
+  bucketlist: true
+
+dates:
+  release_year:
+  watched_date:
+
+volumes_seasons:
+  total: 1
+  ongoing: false
+  last_known: "Movie"
+
+adaptation:
+  anime_exists: false
+  studio:
+  movies_exist: true
+  movie_count: 1
+
+meta:
+  rating:
+  notes: "YAML-only entry"
+

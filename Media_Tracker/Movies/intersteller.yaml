@@ -1,0 +1,32 @@
+id: INTST
+title: Interstellar
+type: Movie
+category: Sci-Fi
+genres: [Science Fiction, Space, Drama]
+director: Christopher Nolan
+author: Jonathan Nolan
+
+status:
+  consumed: true
+  completed: true
+  bucketlist: false
+
+dates:
+  release_year: 2014
+  watched_date: 2020-09-12
+
+volumes_seasons:
+  total: 1
+  ongoing: false
+  last_known: "Movie"
+
+adaptation:
+  anime_exists: false
+  studio: Paramount Pictures
+  movies_exist: true
+  movie_count: 1
+
+meta:
+  rating: 9.4
+  notes: "Time dilation masterpiece"
+

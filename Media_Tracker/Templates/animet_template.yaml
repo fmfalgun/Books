@@ -1,0 +1,30 @@
+id:
+title:
+type: Anime
+category:
+genres: []
+author:
+
+status:
+  consumed: false
+  completed: false
+  bucketlist: false
+
+dates:
+  start_date:
+  last_update:
+
+volumes_seasons:
+  total:
+  ongoing:
+  last_known:
+
+adaptation:
+  studio:
+  movies_exist: false
+  movie_count: 0
+
+meta:
+  rating:
+  notes: "YAML-only entry"
+

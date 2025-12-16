@@ -1,0 +1,31 @@
+id: AOT
+title: Attack on Titan
+type: Anime
+category: Seinen
+genres: [Action, Dark Fantasy, Drama]
+author: Hajime Isayama
+
+status:
+  consumed: true
+  completed: true
+  bucketlist: false
+
+dates:
+  start_date: 2021-02-10
+  last_update: 2023-11-05
+
+volumes_seasons:
+  total: 4
+  ongoing: false
+  last_known: "Final Season – Part 4"
+
+adaptation:
+  anime_exists: true
+  studio: MAPPA / Wit Studio
+  movies_exist: true
+  movie_count: 4
+
+meta:
+  rating: 9.2
+  notes: "Completed anime"
+

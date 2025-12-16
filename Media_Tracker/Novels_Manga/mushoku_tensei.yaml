@@ -1,0 +1,31 @@
+id: MT
+title: Mushoku Tensei
+type: Novel_Manga
+category: Isekai
+genres: [Fantasy, Drama]
+author: Rifujin na Magonote
+
+status:
+  consumed: true
+  completed: true
+  bucketlist: false
+
+dates:
+  start_date: 2019-05-01
+  last_update: 2022-12-31
+
+volumes_seasons:
+  total: 26
+  ongoing: false
+  last_known: "Volume 26"
+
+adaptation:
+  anime_exists: true
+  studio: Studio Bind
+  movies_exist: false
+  movie_count: 0
+
+meta:
+  rating: 8.9
+  notes: "Completed LN"
+

@@ -1,0 +1,31 @@
+id: DUNE
+title: Dune
+type: Novel_Normal
+category: Sci-Fi
+genres: [Science Fiction, Politics]
+author: Frank Herbert
+
+status:
+  consumed: true
+  completed: true
+  bucketlist: false
+
+dates:
+  start_date: 2022-06-01
+  last_update: 2022-08-10
+
+volumes_seasons:
+  total: 6
+  ongoing: false
+  last_known: "Chapterhouse: Dune"
+
+adaptation:
+  anime_exists: false
+  studio:
+  movies_exist: true
+  movie_count: 2
+
+meta:
+  rating: 9.1
+  notes: "Classic sci-fi"
+

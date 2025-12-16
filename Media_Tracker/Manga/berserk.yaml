@@ -1,0 +1,31 @@
+id: BRSK
+title: Berserk
+type: Manga
+category: Seinen
+genres: [Dark Fantasy, Psychological]
+author: Kentaro Miura
+
+status:
+  consumed: true
+  completed: false
+  bucketlist: false
+
+dates:
+  start_date: 2020-08-15
+  last_update: 2024-01-01
+
+volumes_seasons:
+  total: 42
+  ongoing: true
+  last_known: "Volume 42"
+
+adaptation:
+  anime_exists: true
+  studio: OLM / GEMBA
+  movies_exist: true
+  movie_count: 3
+
+meta:
+  rating: 9.8
+  notes: "Legendary manga"
+
