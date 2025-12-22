@@ -1,0 +1,759 @@
+# Project 11: AESPM - Kubernetes Deployment Guide
+## Production-Ready Infrastructure as Code
+
+---
+
+## Part 1: Directory Structure
+
+```
+aespm-k8s/
+├── namespace.yaml
+├── configmaps/
+│   ├── api-config.yaml
+│   ├── prometheus-config.yaml
+│   └── grafana-dashboards.yaml
+├── secrets/
+│   ├── database-secrets.yaml
+│   ├── api-keys-secrets.yaml
+│   └── tls-certificates.yaml
+├── databases/
+│   ├── postgres-statefulset.yaml
+│   ├── postgres-service.yaml
+│   └── postgres-pvc.yaml
+├── message-queue/
+│   ├── kafka-statefulset.yaml
+│   ├── kafka-service.yaml
+│   └── zookeeper-statefulset.yaml
+├── cache/
+│   ├── redis-statefulset.yaml
+│   └── redis-service.yaml
+├── search/
+│   ├── elasticsearch-statefulset.yaml
+│   └── elasticsearch-service.yaml
+├── backend/
+│   ├── api-deployment.yaml
+│   ├── api-service.yaml
+│   ├── api-hpa.yaml
+│   ├── celery-deployment.yaml
+│   └── celery-hpa.yaml
+├── frontend/
+│   ├── dashboard-deployment.yaml
+│   └── dashboard-service.yaml
+├── monitoring/
+│   ├── prometheus-deployment.yaml
+│   ├── grafana-deployment.yaml
+│   └── prometheus-rbac.yaml
+├── ingress/
+│   ├── ingress-tls.yaml
+│   └── cert-manager-issuer.yaml
+├── roles/
+│   └── rbac.yaml
+└── helmchart/
+    ├── Chart.yaml
+    ├── values.yaml
+    ├── templates/
+    │   ├── _helpers.tpl
+    │   ├── deployment.yaml
+    │   └── service.yaml
+    └── values/
+        ├── dev.yaml
+        ├── staging.yaml
+        └── production.yaml
+```
+
+---
+
+## Part 2: Core Kubernetes Manifests
+
+### 1. Namespace & RBAC
+
+```yaml
+# namespace.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: aespm
+  labels:
+    name: aespm
+---
+# Service Account for API
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: aespm-api
+  namespace: aespm
+---
+# Role for API
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: aespm-api-role
+  namespace: aespm
+rules:
+- apiGroups: [""]
+  resources: ["configmaps", "secrets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list"]
+---
+# Role Binding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: aespm-api-rolebinding
+  namespace: aespm
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: aespm-api-role
+subjects:
+- kind: ServiceAccount
+  name: aespm-api
+  namespace: aespm
+```
+
+### 2. FastAPI Backend Deployment
+
+```yaml
+# backend/api-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aespm-api
+  namespace: aespm
+  labels:
+    app: aespm-api
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: aespm-api
+  template:
+    metadata:
+      labels:
+        app: aespm-api
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: aespm-api
+      containers:
+      - name: api
+        image: aespm-api:latest
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 8000
+          protocol: TCP
+        - name: metrics
+          containerPort: 9090
+          protocol: TCP
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: database-secret
+              key: url
+        - name: REDIS_URL
+          value: "redis://aespm-redis:6379"
+        - name: KAFKA_BROKER
+          value: "kafka-0.kafka-headless.aespm.svc.cluster.local:9092"
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: api-keys-secret
+              key: openai-key
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: api-config
+              key: log-level
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "1"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: http
+          initialDelaySeconds: 20
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 2
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: config
+          mountPath: /etc/aespm
+          readOnly: true
+      volumes:
+      - name: config
+        configMap:
+          name: api-config
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - aespm-api
+              topologyKey: kubernetes.io/hostname
+---
+# Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: aespm-api
+  namespace: aespm
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 8000
+    protocol: TCP
+    name: http
+  - port: 9090
+    targetPort: 9090
+    protocol: TCP
+    name: metrics
+  selector:
+    app: aespm-api
+---
+# Horizontal Pod Autoscaler
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: aespm-api-hpa
+  namespace: aespm
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: aespm-api
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 15
+      - type: Pods
+        value: 4
+        periodSeconds: 15
+      selectPolicy: Max
+```
+
+### 3. PostgreSQL StatefulSet
+
+```yaml
+# databases/postgres-statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: aespm-postgres
+  namespace: aespm
+spec:
+  serviceName: postgres
+  replicas: 1  # Primary only (scale using read replicas in production)
+  selector:
+    matchLabels:
+      app: aespm-postgres
+  template:
+    metadata:
+      labels:
+        app: aespm-postgres
+    spec:
+      containers:
+      - name: postgres
+        image: timescale/timescaledb:latest-pg15
+        ports:
+        - containerPort: 5432
+          name: postgres
+        env:
+        - name: POSTGRES_USER
+          value: aespm_user
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: database-secret
+              key: password
+        - name: POSTGRES_DB
+          value: aespm_db
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1"
+          limits:
+            memory: "4Gi"
+            cpu: "2"
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - pg_isready -U aespm_user
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - pg_isready -U aespm_user
+          initialDelaySeconds: 20
+          periodSeconds: 5
+      securityContext:
+        fsGroup: 999
+  volumeClaimTemplates:
+  - metadata:
+      name: postgres-storage
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: "fast-ssd"  # Adjust to your cluster
+      resources:
+        requests:
+          storage: 100Gi
+---
+# Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: aespm
+spec:
+  ports:
+  - port: 5432
+    name: postgres
+  clusterIP: None
+  selector:
+    app: aespm-postgres
+```
+
+### 4. Kafka StatefulSet
+
+```yaml
+# message-queue/kafka-statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: kafka
+  namespace: aespm
+spec:
+  serviceName: kafka-headless
+  replicas: 3
+  selector:
+    matchLabels:
+      app: kafka
+  template:
+    metadata:
+      labels:
+        app: kafka
+    spec:
+      containers:
+      - name: kafka
+        image: confluentinc/cp-kafka:7.5.0
+        ports:
+        - containerPort: 9092
+          name: client
+        - containerPort: 29092
+          name: internal
+        env:
+        - name: KAFKA_BROKER_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: KAFKA_ZOOKEEPER_CONNECT
+          value: "zookeeper-0.zookeeper.aespm.svc.cluster.local:2181"
+        - name: KAFKA_ADVERTISED_LISTENERS
+          value: "PLAINTEXT://$(HOSTNAME).kafka-headless.aespm.svc.cluster.local:29092,PLAINTEXT_HOST://$(POD_IP):9092"
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: HOSTNAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP
+          value: "PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT"
+        - name: KAFKA_AUTO_CREATE_TOPICS_ENABLE
+          value: "true"
+        - name: KAFKA_LOG_RETENTION_HOURS
+          value: "720"  # 30 days
+        - name: KAFKA_NUM_PARTITIONS
+          value: "10"
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1"
+        volumeMounts:
+        - name: kafka-storage
+          mountPath: /var/lib/kafka/data
+  volumeClaimTemplates:
+  - metadata:
+      name: kafka-storage
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: "fast-ssd"
+      resources:
+        requests:
+          storage: 50Gi
+---
+# Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka-headless
+  namespace: aespm
+spec:
+  serviceName: kafka-headless
+  ports:
+  - port: 9092
+    name: client
+  - port: 29092
+    name: internal
+  clusterIP: None
+  selector:
+    app: kafka
+```
+
+### 5. Redis StatefulSet
+
+```yaml
+# cache/redis-statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: aespm-redis
+  namespace: aespm
+spec:
+  serviceName: aespm-redis
+  replicas: 1  # Primary only
+  selector:
+    matchLabels:
+      app: aespm-redis
+  template:
+    metadata:
+      labels:
+        app: aespm-redis
+    spec:
+      containers:
+      - name: redis
+        image: redis:7.0-alpine
+        ports:
+        - containerPort: 6379
+          name: redis
+        command:
+        - redis-server
+        - "--appendonly"
+        - "yes"
+        - "--requirepass"
+        - "$(REDIS_PASSWORD)"
+        env:
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: redis-secret
+              key: password
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        volumeMounts:
+        - name: redis-storage
+          mountPath: /data
+        livenessProbe:
+          exec:
+            command:
+            - redis-cli
+            - ping
+          initialDelaySeconds: 30
+          periodSeconds: 10
+  volumeClaimTemplates:
+  - metadata:
+      name: redis-storage
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: "fast-ssd"
+      resources:
+        requests:
+          storage: 20Gi
+---
+# Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: aespm-redis
+  namespace: aespm
+spec:
+  ports:
+  - port: 6379
+    name: redis
+  clusterIP: None
+  selector:
+    app: aespm-redis
+```
+
+### 6. Ingress with TLS
+
+```yaml
+# ingress/ingress-tls.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: aespm-ingress
+  namespace: aespm
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - aespm.yourdomain.com
+    secretName: aespm-tls
+  rules:
+  - host: aespm.yourdomain.com
+    http:
+      paths:
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: aespm-api
+            port:
+              number: 80
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: aespm-dashboard
+            port:
+              number: 3000
+```
+
+---
+
+## Part 3: Helm Chart (values.yaml)
+
+```yaml
+# helmchart/values.yaml
+replicaCount: 3
+
+image:
+  repository: aespm-api
+  tag: latest
+  pullPolicy: Always
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8000
+
+ingress:
+  enabled: true
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: aespm.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: aespm-tls
+      hosts:
+        - aespm.example.com
+
+resources:
+  limits:
+    cpu: 1
+    memory: 1Gi
+  requests:
+    cpu: 250m
+    memory: 512Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+postgres:
+  enabled: true
+  storageSize: 100Gi
+  user: aespm_user
+
+kafka:
+  enabled: true
+  replicas: 3
+  storageSize: 50Gi
+  partitions: 10
+
+redis:
+  enabled: true
+  storageSize: 20Gi
+
+elasticsearch:
+  enabled: true
+  replicas: 3
+  storageSize: 30Gi
+
+prometheus:
+  enabled: true
+  retention: 30d
+
+grafana:
+  enabled: true
+  adminPassword: secure_password
+
+nodeSelector: {}
+  # disktype: ssd
+
+tolerations: []
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      podAffinityTerm:
+        labelSelector:
+          matchExpressions:
+          - key: app
+            operator: In
+            values:
+            - aespm-api
+        topologyKey: kubernetes.io/hostname
+```
+
+---
+
+## Part 4: Deployment Commands
+
+```bash
+# Create namespace
+kubectl create namespace aespm
+
+# Apply secrets
+kubectl apply -f secrets/database-secrets.yaml
+kubectl apply -f secrets/api-keys-secrets.yaml
+
+# Apply configs
+kubectl apply -f configmaps/
+
+# Deploy databases (wait for these first)
+kubectl apply -f databases/
+
+# Wait for DB to be ready
+kubectl wait --for=condition=ready pod -l app=aespm-postgres -n aespm --timeout=300s
+
+# Deploy message queue and cache
+kubectl apply -f message-queue/
+kubectl apply -f cache/
+
+# Deploy backend
+kubectl apply -f backend/
+
+# Deploy frontend
+kubectl apply -f frontend/
+
+# Deploy monitoring
+kubectl apply -f monitoring/
+
+# Deploy ingress
+kubectl apply -f ingress/
+
+# Verify all deployments
+kubectl get deployments -n aespm
+kubectl get services -n aespm
+kubectl get pods -n aespm
+
+# Using Helm
+helm install aespm ./helmchart -n aespm -f helmchart/values/production.yaml
+```
+
+---
+
+## Part 5: Monitoring & Troubleshooting
+
+```bash
+# Check pod logs
+kubectl logs -f deployment/aespm-api -n aespm
+
+# Execute into pod
+kubectl exec -it deployment/aespm-api -n aespm -- /bin/bash
+
+# Port forward
+kubectl port-forward svc/aespm-api 8000:80 -n aespm
+
+# Monitor resources
+kubectl top nodes
+kubectl top pods -n aespm
+
+# Check events
+kubectl get events -n aespm --sort-by='.lastTimestamp'
+```
+
+---
+
+This Kubernetes deployment provides production-ready infrastructure with high availability, auto-scaling, monitoring, and security best practices.
+
