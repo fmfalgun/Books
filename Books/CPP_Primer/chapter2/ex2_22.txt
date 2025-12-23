@@ -1,0 +1,14 @@
+Exercise 2.22: Assuming p is a pointer to int, explain the following code:
+if (p) // ...
+if (*p) // ...
+
+my answer: 
+	1st condition - true if p is not nullptr
+	2nd condition - true if p is not referenced to variable with 0 as stored value.
+
+gpt answer: 
+	| Expression | Checks           | Meaning              |
+	| ---------- | ---------------- | -------------------- |
+	| `if (p)`   | Pointer value    | Is `p` non-null?     |
+	| `if (*p)`  | Pointed-to value | Is the int non-zero? |
+
