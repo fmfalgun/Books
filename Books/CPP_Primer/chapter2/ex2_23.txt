@@ -1,0 +1,11 @@
+Exercise 2.23: Given a pointer p, can you determine whether p points to a valid object?
+If so, how? If not, why not?
+
+My answer: As book mentioned "We may dereference only a valid pointer that points to an object."
+	   so it proves that we can check whether pointer point's to valid point.
+	   By checking the amount of space/memory occupied by particular object. (assumption)
+
+gpt answer:  No, given a pointer p, there is no general way to determine whether it points to a valid object.
+	     Checking p only tells whether it is null, not whether it refers to a live object. 
+	     Dereferencing an invalid pointer results in undefined behavior. 
+	     Validity must be ensured by program logic, not runtime checks.

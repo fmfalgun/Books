@@ -1,0 +1,16 @@
+name: 🎨 Feature Request
+description: Suggest a new feature or enhancement
+title: "[FEATURE] "
+labels: ["enhancement"]
+body:
+  - type: input
+    id: summary
+    attributes:
+      label: "Feature Summary"
+      description: "A concise description of the requested feature."
+  - type: textarea
+    id: details
+    attributes:
+      label: "Details"
+      description: "Explain why this feature is useful."
+

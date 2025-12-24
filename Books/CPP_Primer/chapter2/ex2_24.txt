@@ -1,0 +1,12 @@
+Exercise 2.24: Why is the initialization of p legal but that of lp illegal?
+int i = 42; void *p = &i; long *lp = &i;
+
+My Answer: coz long int pointer is trying to point at int's address (i haven't carefully checked void there, 
+	   assumed "int *p" there)
+gpt answer: 
+
+| Initialization   | Allowed? | Why                                               |
+| ---------------- | -------- | ------------------------------------------------- |
+| `void *p = &i;`  | ✅ Yes    | `void*` can hold address of any object            |
+| `long *lp = &i;` | ❌ No     | No implicit conversion between `int*` and `long*` |
+
