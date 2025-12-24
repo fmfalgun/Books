@@ -1,0 +1,22 @@
+name: 🐛 Bug Report
+description: Report a bug to help us improve
+title: "[BUG] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: "Please provide clear information about the bug."
+  - type: textarea
+    id: steps
+    attributes:
+      label: "Steps to Reproduce"
+      description: "What steps did you take to encounter the bug?"
+  - type: textarea
+    id: expected
+    attributes:
+      label: "Expected Behavior"
+  - type: textarea
+    id: actual
+    attributes:
+      label: "Actual Behavior"
+
