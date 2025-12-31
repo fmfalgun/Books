@@ -210,40 +210,34 @@ sudo apt install -y \
     grub-pc-bin \
     grub-efi-amd64-bin \
     efibootmgr \
-    dracut \
     initramfs-tools \
     linux-headers-amd64
 
 # Init system tools
 sudo apt install -y \
-    systemd-container \
-    systemd-devel \
-    openrc \
-    elogind
+    systemd \
+    libsystemd-dev
 
 # Analysis & forensics
 sudo apt install -y \
     sleuthkit \
     autopsy \
     testdisk \
-    photorec \
     extundelete \
     ext4magic \
     chntpw \
-    dd_rescue
+    ddrescue
 
 # Boot analysis
 sudo apt install -y \
-    bootloader-utils \
     kexec-tools \
     memtest86+ \
     cpu-checker
 
 # Kernel & module tools
 sudo apt install -y \
-    kernel-source \
-    kernel-devel \
-    module-init-tools
+    linux-source \
+    kmod
 
 # Scripting & automation
 sudo apt install -y \
@@ -256,14 +250,13 @@ sudo apt install -y \
     tree \
     htop \
     ncdu \
-    hexdump \
+    bsdextrautils \
     hexedit \
     strace \
-    ltrace \
-    systemtap
+    ltrace
 
 # Verify installations
-which parted grub-mkimage systemd-analyze sleuthkit
+which parted grub-mkimage systemd-analyze fls
 ```
 
 ### 2.5 Create Kali Working Environment
