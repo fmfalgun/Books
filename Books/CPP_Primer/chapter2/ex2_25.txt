@@ -1,0 +1,21 @@
+Exercise 2.25: Determine the types and values of each of the following variables.
+	(a) int* ip, i, &r = i; 
+	(b) int i, *ip = 0; 
+	(c) int* ip, ip2;
+
+My Answer:  
+	a - ip and i are int pointer, r is holding address using & then it must be int vairable;
+	b - i is integer variable, ip is integer pointer
+	c - ip and ip2 both are integer variable
+
+GPT Answer: 
+	| Statement | Variable | Type   | Value            |
+	| --------- | -------- | ------ | ---------------- |
+	| (a)       | `ip`     | `int*` | uninitialized    |
+	|           | `i`      | `int`  | uninitialized    |
+	|           | `r`      | `int&` | reference to `i` |
+	| (b)       | `i`      | `int`  | uninitialized    |
+	|           | `ip`     | `int*` | null pointer     |
+	| (c)       | `ip`     | `int*` | uninitialized    |
+	|           | `ip2`    | `int`  | uninitialized    |
+
