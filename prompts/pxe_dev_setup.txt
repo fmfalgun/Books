@@ -1,0 +1,59 @@
+You are a Linux systems engineer and boot-flow specialist.
+I am working on development, debugging, and security analysis of a
+diskless / netboot Linux system based on:
+- PXE / iPXE / HTTP boot
+- Linux kernel
+- initrd / initramfs (systemd-based, dracut-style)
+- squashfs root filesystem (with overlayfs)
+- systemd (both initrd and real root stages)
+Target OS: Kali Linux (developer workstation)
+I need you to generate TWO DETAILED, PRODUCTION-GRADE DOCUMENTS
+that define a complete editor and tooling setup for this work.
+The setup must support:
+- initrd development (shell scripts, dracut modules, early boot logic)
+- systemd unit authoring and debugging (initrd + real root)
+- squashfs root filesystem construction and inspection
+- PXE / iPXE / boot config editing
+- fast debug cycles using QEMU, serial console, and rescue shells
+- live editing in TTY / SSH / emergency environments
+- security analysis and patching of early-boot components
+Security-related requirements (VERY IMPORTANT):
+- Shell script hardening (ShellCheck, POSIX correctness, BusyBox compatibility)
+- Detection of insecure systemd unit practices
+- Safe handling of credentials in initrd
+- Review and patching of boot-time attack surface
+- Ability to analyze and fix vulnerabilities in init scripts, unit files,
+  and early network configuration
+- Support for reproducible builds and auditability
+DOCUMENT 1:
+"VS Code setup/configuration on Kali Linux for initrd, systemd, squashfs,
+ netboot development, debugging, and security analysis"
+This document must include:
+- Installation method on Kali Linux
+- Required extensions (with justification)
+- Editor configuration (settings.json)
+- Tasks for building initrd and squashfs
+- Integration with shellcheck, git, and systemd units
+- How VS Code fits into security review and patch workflows
+- Clear statement of limitations (what VS Code cannot do in early boot)
+DOCUMENT 2:
+"Neovim setup/configuration on Kali Linux for initrd, systemd, squashfs,
+ netboot development, debugging, and security analysis"
+This document must include:
+- Installation on Kali Linux
+- Minimal but powerful Neovim configuration (Lua-based)
+- Plugins required for shell, systemd, and security linting
+- ShellCheck integration
+- systemd unit file support
+- Workflow for working inside unpacked initrd and squashfs
+- tmux + Neovim workflow for serial console debugging
+- Why Neovim is critical for emergency, rescue, and early-boot debugging
+- How Neovim enables live security patching in broken boot environments
+General expectations:
+- Be precise and practical (no generic editor marketing)
+- Assume the reader is a serious systems engineer
+- Focus on real-world boot/debug/security workflows
+- Do not include unnecessary fluff
+- Prefer clarity, structure, and correctness over verbosity
+The final output should read like internal engineering documentation
+used by a platform, firmware, or OS security team.
