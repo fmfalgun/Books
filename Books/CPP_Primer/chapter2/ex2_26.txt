@@ -1,0 +1,21 @@
+Exercise 2.26: Which of the following are legal? For those that are illegal, explain why.
+	(a) const int buf; 
+	(b) int cnt = 0;
+	(c) const int sz = cnt; 
+	(d) ++cnt; ++sz;
+
+My Answer: 
+	a) legal
+	b) legal
+	c) illegal, const can be asign to variable's value it must be proper int value
+	d) first is legal, but if sz in const then it is illegal coz they can't be increase 
+
+chatgpt answer: 
+	| Statement             | Legal? | Explanation                             |
+	| --------------------- | ------ | --------------------------------------- |
+	| `const int buf;`      | ❌      | const must be initialized               |
+	| `int cnt = 0;`        | ✅      | normal initialization                   |
+	| `const int sz = cnt;` | ✅      | const can be initialized from non-const |
+	| `++cnt;`              | ✅      | cnt is modifiable                       |
+	| `++sz;`               | ❌      | sz is const                             |
+
